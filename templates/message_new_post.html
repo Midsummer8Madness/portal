@@ -1,0 +1,23 @@
+<!-- templates/message_new_post.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Новый пост: {{ post.title }}</title>
+</head>
+<body>
+    <h2>Здравствуйте, {{ user.username }}!</h2>
+    <p>У вас появился новый пост в категории: <strong>
+        {% for category in post.postCategory.all %}
+            {{ category.name }}{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+    </strong></p>
+    <h3>{{ post.title }}</h3>
+    <p>{{ post.text|slice:":200" }}{% if post.text|length > 200 %}...{% endif %}</p>
+    <p>Дата публикации: {{ post.dateCreation }}</p>
+    <!-- Добавляем ссылку на полную статью -->
+    <p><a href="{{ post.get_absolute_url }}">Читать полностью</a></p>
+    <hr>
+    <p>Спасибо за вашу подписку!</p>
+</body>
+</html>

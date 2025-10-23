@@ -1,0 +1,36 @@
+{% extends 'flatpages/default.html' %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+
+    <br><br>
+    <h3>Ваш профиль: </h3>
+    <br>
+    <h5>Никнейм: {{ user.username }}</h5>
+    <h5>Фамилия: {{ user.last_name }}</h5>
+    <h5>Имя: {{ user.first_name }}</h5>
+    <h5>E-mail: {{ user.email }}</h5>
+
+<p style="font-size:20px">Groups:</p>
+{% for group in request.user.groups.all %}
+    {% if group.name == 'common' %} | common |{% endif %}
+    {% if group.name == 'authors' %} | authors |{% endif %}
+{% endfor %}
+
+
+{% if is_not_common %}
+<button> <a href="/info/upgrade_common/">Стать читателем</a> </button>
+{% endif %}
+
+{% if is_not_authors %}
+<button> <a href="/info/upgrade/">Стать автором</a> </button>
+{% endif %}
+
+    <br><br>
+    <a class="btn btn-secondary" href="/sign/edit/" role="button">Изменить данные</a>
+    <br><br>
+    <form method="post" action="/sign/logout/">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-secondary">Выйти из аккаунта</button>
+    </form>
+
+{% endblock %}

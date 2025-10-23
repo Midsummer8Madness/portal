@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>Новые статьи за неделю</title>
+</head>
+<body>
+    <h2>Здравствуйте!</h2>
+    <p>Вот список новых статей, опубликованных за последнюю неделю:</p>
+    {% if posts.exists %}
+        {% for post in posts %}
+            <hr>
+            <h3><a href="{{ post.get_absolute_url }}">{{ post.title }}</a></h3>
+            <p>
+                {{ post.text|slice:":200" }}{% if post.text|length > 200 %}...{% endif %}
+            </p>
+            <p>Дата публикации: {{ post.dateCreation }}</p>
+        {% endfor %}
+    {% else %}
+        <p>За последнюю неделю новых статей не найдено.</p>
+    {% endif %}
+    <hr>
+    <p>Спасибо за вашу подписку!</p>
+</body>
+</html>

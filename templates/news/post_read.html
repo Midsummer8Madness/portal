@@ -1,0 +1,28 @@
+{% extends 'flatpages/default.html' %}
+
+{% load custom_tags %}
+{% load custom_filters %}
+
+<!-- Название у нас будет Product -->
+{% block title %}
+Product
+{% endblock title %}
+
+{% block content %}
+<h2>Заголовок</h2>
+<h1>{{ post_read.title|censor }}</h1>
+<h2>{{ post_read.text|censor }}</h2>
+{% for each in post_read.postCategory.all %}
+    {{ each.name }} {% if not forloop.last %}, {% endif %}
+    <a href="{% url 'subscribe_category' pk=each.pk %}">подписаться</a>
+{% empty %}
+    Нет категории
+{% endfor %}
+<h1>Дата публикации {{ post_read.dateCreation|date:'d M Y' }}</h1>
+<h2>Автор: {{post_read.author}}</h2>
+
+{% if is_authors %}
+<a href="{% url 'news_edit' post_read.pk %}" class="btn">Редактировать</a>
+{% endif %}
+
+{% endblock content %}

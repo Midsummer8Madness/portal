@@ -1,0 +1,41 @@
+{% extends 'flatpages/default.html' %}
+
+{% block content %}
+<h1>Поиск новостей</h1>
+
+<div style="display: flex; gap: 20px;">
+  <!-- Левая колонка: форма поиска и результаты -->
+  <div style="flex: 3;">
+    <form method="get" style="margin-bottom: 20px;">
+      {{ filter.form.as_p }}
+      <button type="submit">Искать</button>
+    </form>
+
+    <h2>Результаты</h2>
+    <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+      {% for post in post_search %}
+        <div style="border: 1px solid #ccc; padding: 10px; width: 200px;">
+          <strong>{{ post.title }}</strong><br>
+          Автор: {{ post.author.name }}<br>
+          Дата: {{ post.dateCreation|date:"d.m.Y" }}
+        </div>
+      {% empty %}
+        <div>Нет результатов</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Правая колонка: категории, меньшая ширина -->
+  <div style="width: 150px; border-left: 1px solid #ccc; padding-left: 20px;">
+    <h3>Все категории</h3>
+    <ul style="list-style: none; padding-left: 0;">
+      {% for category in categories %}
+        <li>{{ category.name }}</li>
+      {% empty %}
+        <li>Нет категорий</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+{% endblock %}

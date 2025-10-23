@@ -1,0 +1,114 @@
+{% extends 'flatpages/default.html' %}
+
+{% load custom_filters %}
+{# Импортируем модуль с нашим тегом #}
+{% load custom_tags %}
+
+{% block title %}
+    Post
+{% endblock title %}
+
+{% block content %}
+    <h3>Количество новостей: {{posts|length}}</h3>
+
+    <form action="" method="get">
+        {{ filterset.form.as_p }}
+        <input type="submit" value="Найти" />
+    </form>
+
+<div>
+<h3>Все категории:</h3>
+<ul>
+  <li>Travel
+    <form action="/news/1/subscribe/" method="post" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit">подписаться</button>
+    </form>
+  </li>
+</ul>
+<ul>
+  <li>Politics
+    <form action="/news/2/subscribe/" method="post" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit">подписаться</button>
+    </form>
+  </li>
+</ul>
+<ul>
+  <li>Business
+    <form action="/news/3/subscribe/" method="post" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit">подписаться</button>
+    </form>
+  </li>
+</ul>
+<ul>
+  <li>Entertainment
+    <form action="/news/4/subscribe/" method="post" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit">подписаться</button>
+    </form>
+  </li>
+</ul>
+<pre>&nbsp;</pre>
+</div>
+
+    <hr>
+    {% if posts %}
+        <table>
+            <tr>
+                <td>Дата публикации</td>
+                <td>Автор</td>
+                <td>Заголовок</td>
+                <td>Начало</td>
+                <td>Категория</td>
+            </tr>
+            {% for post_read in posts %}
+            <tr>
+                <td>{{ post_read.dateCreation }}</td>
+                <td>{{ post_read.author }}</td>
+                <td>
+                    <a href="{{ post_read.pk }}">{{ post_read.title|censor }}</a>
+                </td>
+                <td>{{ post_read.text|censor|truncatechars:20 }}</td>
+                <td>
+                    {% for category in post_read.postCategory.all %}
+                        {{ category.name }}{% if not forloop.last %}, {% endif %}
+                    {% empty %}
+                        Нет категории
+                    {% endfor %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5">Нет новостей</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <h2>Скоро здесь что-то будет!</h2>
+    {% endif %}
+
+    {# Добавляем пагинацию на страницу #}
+    {# Информация о предыдущих страницах #}
+    {% if page_obj.has_previous %}
+        <a href="?page=1">1</a>
+        {% if page_obj.previous_page_number != 1 %}
+            ...
+            <a href="?page={{ page_obj.previous_page_number }}">{{ page_obj.previous_page_number }}</a>
+        {% endif %}
+    {% endif %}
+
+    {# Информация о текущей странице #}
+    {{ page_obj.number }}
+
+    {# Информация о следующих страницах #}
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}">{{ page_obj.next_page_number }}</a>
+        {% if paginator.num_pages != page_obj.next_page_number %}
+            ...
+            <a href="?page={{ page_obj.paginator.num_pages }}">{{ page_obj.paginator.num_pages }}</a>
+        {% endif %}
+    {% endif %}
+{% endblock content %}
+

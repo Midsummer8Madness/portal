@@ -34,6 +34,11 @@ class PostCreate(CreateView):
         except Author.DoesNotExist:
             return HttpResponseForbidden("Автор не найден.")
 
+        # Проверка лимита публикаций за последние 24 часа
+        if posts_last_24_hours(author) >= 100:
+            messages.error(self.request, 'Вы не можете публиковать более 3 новостей в сутки.')
+            return self.form_invalid(form)
+
         # Связываем автора с постом
         form.instance.author = author
 

@@ -4,6 +4,8 @@ from django.conf import settings
 from django.utils import timezone
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+from django.urls import reverse
+from django.contrib.sites.models import Site
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -11,85 +13,104 @@ from django.core.management.base import BaseCommand
 from django_apscheduler.jobstores import DjangoJobStore
 from django_apscheduler.models import DjangoJobExecution
 
-# Предполагается, что у вас есть модель Post с датой добавления и связью с категориями
-from myapp.models import Post  # замените на ваш реальный путь к модели
+from news.models import Post
 
 logger = logging.getLogger(__name__)
 
 
 def send_weekly_newsletter():
+    """Отправка еженедельной рассылки подписчикам по категориям."""
     now = timezone.now()
     one_week_ago = now - timedelta(days=7)
 
-    # Получите все новые статьи за последнюю неделю
-    new_posts = Post.objects.filter(created_at__gte=one_week_ago, created_at__lte=now)
+    # Берем все посты за неделю
+    new_posts = Post.objects.filter(dateCreation__gte=one_week_ago)
 
-    # Собираем уникальных подписчиков из всех категорий этих статей
+    if not new_posts.exists():
+        logger.info("Нет новых постов за неделю — рассылка не требуется.")
+        return
+
+    # Получаем текущий домен из django.contrib.sites
+    current_site = Site.objects.get_current()
+    domain = current_site.domain  # например 127.0.0.1:8000
+
+    # Собираем всех подписчиков, у которых есть новые статьи
     subscribers_emails = set()
     for post in new_posts:
-        categories = post.postCategory.all()
-        for category in categories:
+        for category in post.postCategory.all():
             for user in category.subscribers.all():
                 subscribers_emails.add(user.email)
 
-    # Отправляем письма каждому подписчику
     for email in subscribers_emails:
-        # Получите все статьи для этого подписчика
+        # Фильтруем посты по подпискам конкретного пользователя
         user_posts = Post.objects.filter(
             postCategory__subscribers__email=email,
-            created_at__gte=one_week_ago,
-            created_at__lte=now
+            dateCreation__gte=one_week_ago
         ).distinct()
 
         if not user_posts:
-            continue  # если у пользователя нет новых статей, пропускаем
+            continue
 
-        # Формируем HTML контент
+        # Формируем список постов с абсолютными ссылками
+        posts_with_urls = []
+        for post in user_posts:
+            full_url = f"http://{domain}{reverse('post_read', args=[post.pk])}"
+            posts_with_urls.append({
+                'title': post.title,
+                'text': post.text,
+                'dateCreation': post.dateCreation,
+                'url': full_url,
+            })
+
+        # Рендерим шаблон
         html_content = render_to_string(
-            'weekly_newsletter.html',
+            'weekly_newsletter.html',  # ← твой шаблон
             {
-                'posts': user_posts,
+                'posts': posts_with_urls,
             }
         )
 
-        # Создаём и отправляем письмо
+        # Отправляем письмо
         email_message = EmailMultiAlternatives(
             subject='Новые статьи за неделю',
             from_email='andalsulekbaevaa@yandex.ru',
             to=[email],
         )
         email_message.attach_alternative(html_content, "text/html")
+
         try:
             email_message.send()
-            logger.info(f"Отправлено письмо на {email}")
+            logger.info(f"Письмо отправлено на {email}")
         except Exception as e:
             logger.error(f"Ошибка при отправке письма на {email}: {e}")
 
 
 def delete_old_job_executions(max_age=604_800):
+    """Удаляет старые записи о выполнении задач APScheduler (старше недели)."""
     DjangoJobExecution.objects.delete_old_job_executions(max_age)
 
+
 class Command(BaseCommand):
-    help = "Запускает планировщик задач APScheduler."
+    help = "Запускает планировщик APScheduler для еженедельной рассылки."
 
     def handle(self, *args, **kwargs):
         scheduler = BlockingScheduler(timezone=settings.TIME_ZONE)
         scheduler.add_jobstore(DjangoJobStore(), "default")
 
-        # Задача для еженедельной рассылки
+        # Рассылка по понедельникам в 8:00 утра
         scheduler.add_job(
             send_weekly_newsletter,
-            trigger=CronTrigger(day_of_week="mon", hour="00", minute="00"),
+            trigger=CronTrigger(day_of_week="mon", hour="8", minute="0"),
             id="send_weekly_newsletter",
             max_instances=1,
             replace_existing=True,
         )
         logger.info("Добавлена задача: send_weekly_newsletter.")
 
-        # Очистка устаревших задач каждую неделю
+        # Очистка старых записей APScheduler
         scheduler.add_job(
             delete_old_job_executions,
-            trigger=CronTrigger(day_of_week="mon", hour="00", minute="05"),
+            trigger=CronTrigger(day_of_week="mon", hour="8", minute="5"),
             id="delete_old_job_executions",
             max_instances=1,
             replace_existing=True,
